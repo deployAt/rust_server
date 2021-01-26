@@ -1,4 +1,4 @@
-use crate::http::Request;
+use crate::http::{Request, Response, StatusCode};
 use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::io::Read;
@@ -26,13 +26,23 @@ impl Server {
             Ok(_) => {
               println!("Received a request: {}", String::from_utf8_lossy(&buffer));
 
-              match Request::try_from(&buffer[..]) {
-                Ok(request) => {}
-                Err(e) => println!("Failed to parse a request: {}", e),
+              let response = match Request::try_from(&buffer[..]) {
+                Ok(request) => {
+                  Response::new(StatusCode::Ok, Some("<h1>Hello</h1>".to_string()));
+                }
+                Err(e) => {
+                  println!("Failed to parse a request: {}", e);
+                  Response::new(StatusCode::Ok, Some("<h1>Hello</h1>".to_string()));
+                }
+              };
+              if let Err(e) = response.send(&mut stream) {
+                println!("Failed to send response: {}", e);
               }
             }
-            Err(e) => println!("Failed to read from connection: {}", e),
-          }
+            Err(e) => {
+              println!("Failed to read from connection: {}", e);
+            }
+          };
         }
 
         Err(e) => println!("Failed to establish a connection: {}", e),
